@@ -57,47 +57,50 @@ def train(
         device,
     )
 
+from ser.generate_art import generate_ascii_art
+from ser.model import Net
+from ser.run_summary import print_summary
 
 @main.command()
-def infer():
-    run_path = Path("./path/to/one/of/your/training/runs")
+def infer(
+    run_name: str = typer.Option(
+        ...,"-r","--run",help="The name of the run to infer from, corresponding to the folder name within 'results' folder."
+    ),
+):
+    # find better way of defining run path
+    # assumes we are in the "ser" directory where "/results" is accessible 
+    run_path = Path("results/"+run_name)
     label = 6
 
+    # print summary of experiment / run 
+    print_summary(run_path, run_name)
+
     # select image to run inference for
+    print("Selecting image to run inference for...")
     dataloader = test_dataloader(1, transforms(normalize))
     images, labels = next(iter(dataloader))
     while labels[0].item() != label:
         images, labels = next(iter(dataloader))
 
     # load the model
-    model = torch.load(run_path / "model.pt")
+    print("Loading model...")
+    model = Net()
+    state_dict = torch.load(run_path / f"{run_name}_model.pt")
+    model.load_state_dict(state_dict)
 
     # run inference
+    print("Running inference...")
     model.eval()
     output = model(images)
     pred = output.argmax(dim=1, keepdim=True)[0].item()
     confidence = max(list(torch.exp(output)[0]))
     pixels = images[0][0]
+    
+    print("Inference complete. Now generating ascii art.")
+
     print(generate_ascii_art(pixels))
     print(f"This is a {pred}")
+    print("Confidence: " + str(confidence))
 
 
-def generate_ascii_art(pixels):
-    ascii_art = []
-    for row in pixels:
-        line = []
-        for pixel in row:
-            line.append(pixel_to_char(pixel))
-        ascii_art.append("".join(line))
-    return "\n".join(ascii_art)
 
-
-def pixel_to_char(pixel):
-    if pixel > 0.99:
-        return "O"
-    elif pixel > 0.9:
-        return "o"
-    elif pixel > 0:
-        return "."
-    else:
-        return " "
