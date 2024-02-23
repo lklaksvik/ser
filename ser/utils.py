@@ -22,7 +22,7 @@ def write_json(experiment_name, data):
 
     hyperparameter_dict = make_hyperparameter_dict(data)
 
-    with open(os.path.join(save_dir, f"{experiment_name}_json"), 'w') as f:
+    with open(os.path.join(save_dir, f"{experiment_name}.json"), 'w') as f:
         json.dump(hyperparameter_dict, f)
 
 
